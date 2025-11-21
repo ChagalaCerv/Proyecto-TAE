@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rompecabezas: Animales marinos</title>
+  <style>
+    :root{
+      --bg: #022f5c;
+      --panel: #0f3558;
+      --accent: #3ec9d6;
+      --accent-2: #7cf0ff;
+      --text: #eaf7fb;
+      --muted: #9ac6d1;
+      --ok: #4bd37b;
+      --bad: #ff6e6e;
+      --shadow: 0 10px 25px rgba(0,0,0,.4);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 800px at 80% 20%, #0e3961 0%, #071a2d 60%),
+        linear-gradient(180deg, #071a2d 0%, #0a2540 100%);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 24px;
+    }
+    .app{
+      width: min(1100px, 95vw);
+      background: rgba(15, 53, 88, .85);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    header{
+      padding: 18px 22px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), transparent);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .title{
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+    .title h1{
+      font-size: clamp(18px, 3.2vw, 24px);
+      margin:0;
+      letter-spacing:.2px;
+    }
+    .title small{
+      color: var(--muted);
+      display:block;
+    }
+    .controls{
+      display:flex;
+      gap:10px;
+    }
+    button{
+      background: var(--accent);
+      color: #062133;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform .08s ease, filter .2s ease, background .2s ease;
+      box-shadow: 0 6px 14px rgba(62,201,214,.35);
+    }
+    button:hover{ filter: brightness(1.05) }
+    button:active{ transform: scale(.98) }
+    .secondary{
+      background: transparent;
+      color: var(--accent-2);
+      border: 1px solid rgba(124, 240, 255, .35);
+      box-shadow: none;
+    }
+    main{
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 16px;
+      padding: 18px;
+    }
+    @media (max-width: 900px){
+      main{ grid-template-columns: 1fr; }
+    }
+    .board, .bank{
+      background: rgba(8, 29, 49, .75);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 16px;
+      padding: 16px;
+    }
+    .board h2, .bank h2{
+      margin: 0 0 10px;
+      font-size: 16px;
+      color: var(--accent-2);
+      letter-spacing:.3px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .slot{
+      position: relative;
+      background: rgba(255,255,255,.06);
+      border: 1px dashed rgba(255,255,255,.28);
+      border-radius: 14px;
+      min-height: 160px;
+      padding: 10px;
+      transition: border-color .2s ease, background .2s ease, transform .15s ease;
+      overflow:hidden;
+    }
+    .slot.highlight{
+      border-color: var(--accent);
+      background: rgba(62,201,214,.14);
+      transform: translateY(-2px);
+    }
+    .slot.correct{
+      border-style: solid;
+      border-color: rgba(75,211,123,.9);
+      background: rgba(75,211,123,.12);
+    }
+    .slot .label{
+      position: absolute;
+      bottom: 8px; left: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .piece{
+      user-select:none;
+      cursor: grab;
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 8px 18px rgba(0,0,0,.35);
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      transition: transform .15s ease, box-shadow .2s ease, filter .2s ease;
+    }
+    .piece:active{ cursor: grabbing }
+    .piece:hover{ transform: translateY(-2px); }
+    .bank-list{
+      display:grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .emoji{
+      font-size: 32px;
+      filter: drop-shadow(0 8px 6px rgba(0,0,0,.35));
+    }
+    .name{
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing:.3px;
+    }
+    .fact{
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+      margin-top: 4px;
+    }
+    .status{
+      margin-top: 8px;
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      background: rgba(255,255,255,.06);
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+    }
+    .badge.ok{ color:#06381b; background: rgba(75,211,123,.85); border-color: rgba(75,211,123,1); }
+    .badge.fail{ color:#3b0b0b; background: rgba(255,110,110,.85); border-color: rgba(255,110,110,1); }
+    .hidden{ display:none !important; }
+
+    /* subtle underwater bubbles */
+    .bubbles{
+      position:absolute; inset:0; pointer-events:none;
+    }
+    .bubble{
+      position:absolute;
+      background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.7) 0%, rgba(255,255,255,.2) 30%, rgba(255,255,255,0) 70%);
+      width:10px; height:10px; border-radius:50%;
+      animation: rise 8s linear infinite;
+      opacity: .6;
+    }
+    @keyframes rise{
+      0%{ transform: translateY(0) scale(1); opacity:.2;}
+      40%{ opacity:.6;}
+      100%{ transform: translateY(-140px) scale(1.2); opacity:0;}
+    }
+    footer{
+      padding: 14px 18px;
+      display:flex; justify-content:space-between; align-items:center;
+      border-top: 1px solid rgba(255,255,255,.08);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .progress{
+      height: 8px;
+      background: rgba(255,255,255,.08);
+      border-radius: 8px; overflow:hidden;
+      width: 160px;
+    }
+    .progress > span{
+      display:block; height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      width: 0%;
+      transition: width .3s ease;
+    }
+    .toast{
+      position: fixed;
+      inset: auto 20px 20px auto;
+      background: rgba(8, 29, 49, .95);
+      border: 1px solid rgba(124, 240, 255, .35);
+      color: var(--accent-2);
+      padding: 10px 12px;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity .25s ease, transform .25s ease;
+    }
+    .toast.show{ opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+  <div class="app" role="application" aria-label="Rompecabezas de animales marinos">
+    <header>
+      <div class="title">
+        <svg width="36" height="36" viewBox="0 0 64 64" aria-hidden="true">
+          <defs>
+            <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#7cf0ff"/>
+              <stop offset="100%" stop-color="#3ec9d6"/>
+            </linearGradient>
+          </defs>
+          <path d="M6 42c9 0 15-6 18-9 6-6 13-9 22-9 4 0 7 1 10 2-3 7-11 12-19 13-4 1-7 2-10 4-3 2-6 5-12 8-5 2-10-1-9-9z" fill="url(#g1)"/>
+        </svg>
+        <div>
+          <h1>Rompecabezas: Animales marinos</h1>
+          <small>Arrastra cada animal hacia su silueta correcta.</small>
+        </div>
+      </div>
+      <div class="controls">
+        <button id="shuffleBtn" aria-label="Mezclar piezas">Mezclar</button>
+        <button class="secondary" id="resetBtn" aria-label="Reiniciar juego">Reiniciar</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- Tablero con siluetas -->
+      <section class="board">
+        <h2>Tablero</h2>
+        <div class="grid" id="board">
+          <!-- Slots se llenan via JS -->
+        </div>
+        <div class="bubbles" aria-hidden="true"></div>
+      </section>
+
+      <!-- Banco de piezas para arrastrar -->
+      <section class="bank">
+        <h2>Piezas</h2>
+        <div class="bank-list" id="bank">
+          <!-- Piezas se llenan via JS -->
+        </div>
+        <div class="status">
+          <span class="badge" id="statusCount">0 / 6 correctas</span>
+          <span class="badge" id="statusTime">Tiempo: 00:00</span>
+          <span class="badge hidden" id="statusDone">¡Completado! 🐳</span>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div>Consejo: si te pierdes, lee la pista en cada pieza.</div>
+      <div class="progress" aria-label="Progreso">
+        <span id="progressBar"></span>
+      </div>
+    </footer>
+
+    <div class="toast" id="toast">¡Bien hecho! Pieza correcta.</div>
+  </div>
+  <script>
+    // Datos del rompecabezas
+;const ANIMALS = [
+  {
+    id: 'ballena',
+    name: 'Ballena',
+    hint: 'El mamífero más grande del planeta.',
+    img: '/attachments/ZEV1MYG1gAZZi3BSMmArK.jpeg',
+    svg: `...` // conserva tu SVG original aquí
+  },
+  {
+    id: 'tortuga',
+    name: 'Tortuga marina',
+    hint: 'Navega largas distancias y regresa a desovar.',
+    img: '/attachments/rDgNEL814bZFbi4CevVhh.jpeg',
+    svg: `...`
+  },
+  {
+    id: 'delfin',
+    name: 'Delfín',
+    hint: 'Muy social, usa ecolocalización.',
+    img: '/attachments/nzk6cS6UbTqTdF1WqCv4r.jpeg',
+    svg: `...`
+  },
+  {
+    id: 'pulpo',
+    name: 'Pulpo',
+    hint: 'Ocho brazos y gran inteligencia.',
+    img: '/attachments/3kNdxctttTv8xzVAcKCH4.jpeg',
+    svg: `...`
+  },
+  {
+    id: 'tiburon',
+    name: 'Tiburón',
+    hint: 'Depredador con múltiples filas de dientes.',
+    img: '/attachments/rtzkQt4XQdeuEaxz6CUKk.jpeg',
+    svg: `...`
+  },
+  {
+    id: 'caballito',
+    name: 'Caballito de mar',
+    hint: 'El macho lleva los huevos en una bolsa.',
+    img: '/attachments/LPXvhthU14r5EqRtGGyfz.jpeg',
+    svg: `...`
+  }
+];
+
+    // Estado
+    let correctCount = 0;
+    let startTime = null;
+    let timerInterval = null;
+
+    // Utilidades
+    const el = sel => document.querySelector(sel);
+    const make = (tag, props={}) => {
+      const n = document.createElement(tag);
+      Object.entries(props).forEach(([k,v]) => {
+        if (k === 'class') n.className = v;
+        else if (k === 'html') n.innerHTML = v;
+        else if (k.startsWith('on') && typeof v === 'function') n[k] = v;
+        else n.setAttribute(k, v);
+      });
+      return n;
+    };
+
+    function fmtTime(ms){
+      const s = Math.floor(ms/1000);
+      const m = Math.floor(s/60);
+      const ss = s % 60;
+      return `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+    }
+
+    // Burbujas decorativas
+    function bubbles(container){
+      for(let i=0;i<20;i++){
+        const b = make('span', { class:'bubble' });
+        const size = 6 + Math.random()*10;
+        b.style.width = `${size}px`;
+        b.style.height = `${size}px`;
+        b.style.left = `${Math.random()*95}%`;
+        b.style.bottom = `${Math.random()*60}px`;
+        b.style.animationDelay = `${Math.random()*6}s`;
+        container.appendChild(b);
+      }
+    }
+
+    // Renderizar tablero y piezas
+    function render(){
+      const board = el('#board');
+      const bank = el('#bank');
+      board.innerHTML = '';
+      bank.innerHTML = '';
+
+      // Slots
+      ANIMALS.forEach(a => {
+        const slot = make('div', { class:'slot', 'data-accept': a.id, role:'region', 'aria-label': `Silueta de ${a.name}` });
+        slot.innerHTML = `${a.svg}<span class="label">${a.name}</span>`;
+        // DnD events
+        slot.addEventListener('dragover', e => {
+          e.preventDefault();
+          slot.classList.add('highlight');
+        });
+        slot.addEventListener('dragleave', () => slot.classList.remove('highlight'));
+        slot.addEventListener('drop', e => {
+          e.preventDefault();
+          slot.classList.remove('highlight');
+          const pieceId = e.dataTransfer.getData('text/plain');
+          const accept = slot.getAttribute('data-accept');
+          const piece = el(`.piece[data-id="${pieceId}"]`);
+          if(!piece) return;
+          if(pieceId === accept){
+            slot.classList.add('correct');
+            if(!slot.querySelector('.piece')){
+              // Move piece into slot
+              slot.appendChild(piece);
+              piece.setAttribute('draggable', 'false');
+              piece.style.cursor = 'default';
+              correctCount++;
+              updateStatus();
+              pingToast('¡Bien hecho! Pieza correcta.');
+              checkWin();
+            }
+          } else {
+            pingToast('Esa no va ahí. Intenta otra vez.', true);
+            // pequeño feedback
+            piece.animate([{transform:'translateX(0)'},{transform:'translateX(-6px)'},{transform:'translateX(0)'}], {duration:200});
+          }
+        });
+        board.appendChild(slot);
+      });
+
+      // Piezas (mezcladas)
+      const shuffled = [...ANIMALS].sort(() => Math.random() - .5);
+      shuffled.forEach(a => {
+        const piece = make('div', { class:'piece', draggable:'true', 'data-id': a.id, role:'button', 'aria-label': `Pieza: ${a.name}` });
+        piece.innerHTML = `
+          <span class="emoji" aria-hidden="true">${a.emoji}</span>
+          <div>
+            <div class="name">${a.name}</div>
+            <div class="fact">Pista: ${a.hint}</div>
+          </div>
+        `;
+        piece.addEventListener('dragstart', e => {
+          e.dataTransfer.setData('text/plain', a.id);
+          e.dataTransfer.effectAllowed = 'move';
+          piece.style.opacity = '.75';
+        });
+        piece.addEventListener('dragend', () => piece.style.opacity = '1');
+        bank.appendChild(piece);
+      });
+
+      // Estado inicial
+      correctCount = 0;
+      updateStatus(true);
+      startTimer();
+    }
+
+    function updateStatus(reset=false){
+      el('#statusCount').textContent = `${correctCount} / ${ANIMALS.length} correctas`;
+      const pct = Math.round((correctCount / ANIMALS.length) * 100);
+      el('#progressBar').style.width = `${pct}%`;
+      if(reset){
+        el('#statusDone').classList.add('hidden');
+      }
+    }
+
+    function startTimer(){
+      clearInterval(timerInterval);
+      startTime = Date.now();
+      timerInterval = setInterval(() => {
+        const t = Date.now() - startTime;
+        el('#statusTime').textContent = `Tiempo: ${fmtTime(t)}`;
+      }, 250);
+    }
+
+    function checkWin(){
+      if(correctCount >= ANIMALS.length){
+        clearInterval(timerInterval);
+        el('#statusDone').classList.remove('hidden');
+        pingToast(`¡Rompecabezas completado en ${fmtTime(Date.now()-startTime)}! 🐠`);
+      }
+    }
+
+    // Toast feedback
+    let toastTimeout = null;
+    function pingToast(msg, error=false){
+      const toast = el('#toast');
+      toast.textContent = msg;
+      toast.style.borderColor = error ? 'rgba(255,110,110,.85)' : 'rgba(124,240,255,.35)';
+      toast.style.color = error ? '#ffd7d7' : 'var(--accent-2)';
+      toast.classList.add('show');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => toast.classList.remove('show'), 1600);
+    }
+
+    // Controles
+    el('#shuffleBtn').addEventListener('click', () => {
+      // devuelve piezas al banco y mezcla
+      const bank = el('#bank');
+      const pieces = Array.from(document.querySelectorAll('.piece'));
+      pieces.forEach(p => {
+        // si estaba deshabilitada por acierto, vuelve a habilitar
+        p.setAttribute('draggable', 'true');
+        p.style.cursor = 'grab';
+        bank.appendChild(p);
+      });
+      // quitar estados correctos en slots
+      document.querySelectorAll('.slot').forEach(s => s.classList.remove('correct'));
+      // mezclar piezas
+      const order = pieces.sort(() => Math.random() - .5);
+      order.forEach(p => bank.appendChild(p));
+      correctCount = 0;
+      updateStatus(true);
+      startTimer();
+    });
+
+    el('#resetBtn').addEventListener('click', () => {
+      render();
+      pingToast('Juego reiniciado.');
+    });
+
+    // Inicializar
+    bubbles(document.querySelector('.bubbles'));
+    render();
+  </script>
+</body>
+</html>
